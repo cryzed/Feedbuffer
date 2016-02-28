@@ -29,6 +29,6 @@ class Server:
             core.schedule_feed_update(url)
 
         logger.info('Generating feed: %s with %d entries...', url, len(feed.entries))
-        response = core.generate_feed(feed.data, (entry.data for entry in feed.entries))
+        response = core.generate_feed(feed.data, [entry.data for entry in feed.entries])
         database.flush_feed(feed)
         return response

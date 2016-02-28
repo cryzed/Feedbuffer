@@ -51,8 +51,8 @@ def schedule_feed_update(url):
 def generate_feed(feed_data, entries):
     author_detail = feed_data.get('author_detail', {})
     feed_generator = feedgenerator.Atom1Feed(
-        feed_data.title,
-        feed_data.link,
+        feed_data.get('title', ''),
+        feed_data.get('link', ''),
         feed_data.get('description', ''),
         feed_data.get('language', None),
         author_detail.get('email', None),
@@ -69,13 +69,13 @@ def generate_feed(feed_data, entries):
     for entry in entries:
         author_detail = entry.get('author_detail', {})
         feed_generator.add_item(
-            entry.title,
-            entry.link,
+            entry.get('title', ''),
+            entry.get('link', ''),
             entry.get('description', ''),
             author_detail.get('email', None),
             author_detail.get('name', None),
             author_detail.get('href', None),
-            datetime(*entry.published_parsed[:6]) if 'published_parsed' in entry else None,
+            datetime(*entry.published_parsed[:6]) if getattr(entry, 'published_parsed', None) is not None else None,
             entry.get('comments', None),
             entry.get('id_', None),
             None,
@@ -83,7 +83,7 @@ def generate_feed(feed_data, entries):
             [tag.term for tag in entry.get('tags', [])] or None,
             entry.get('rights', None),
             entry.get('ttl', None),
-            datetime(*entry.updated_parsed[:6]) if 'updated_parsed' in entry else None
+            datetime(*entry.updated_parsed[:6]) if getattr(entry, 'updated_parsed', None) is not None else None
         )
 
     return feed_generator.writeString(ENCODING)
