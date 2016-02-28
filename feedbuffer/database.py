@@ -56,17 +56,17 @@ def _feed_item_exists(feed, url):
 def add_feed(url, feed_data):
     feed = Feed(url=url, data=feed_data.feed)
     feed.save()
-    update_feed(feed_data)
+    update_feed(url, feed_data)
 
 
-def update_feed(feed_data):
-    feed = get_feed(feed_data.href)
+def update_feed(url, feed_data):
+    feed = get_feed(url)
     data_source = tuple(
         {'id_': entry.id, 'data': entry, 'feed': feed} for entry in feed_data.entries
         if not _feed_item_exists(feed, entry.id)
     )
 
-    logger.info('Updating feed: %s with %d new entries', feed_data.href, len(data_source))
+    logger.info('Updating feed: %s with %d new entries', url, len(data_source))
 
     with database.atomic():
         FeedItem.insert_many(data_source).execute()

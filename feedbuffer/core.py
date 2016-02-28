@@ -22,7 +22,7 @@ def add_feed(url):
 
 def update_feed(url):
     feed_data = feedparser.parse(url)
-    database.update_feed(feed_data)
+    database.update_feed(url, feed_data)
 
 
 def update_and_reschedule_feed(url):
