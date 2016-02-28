@@ -53,8 +53,8 @@ def _feed_item_exists(feed, url):
     return FeedItem.select().where(FeedItem.feed == feed and FeedItem.id_ == url).exists()
 
 
-def add_feed(feed_data):
-    feed = Feed(url=feed_data.href, data=feed_data.feed)
+def add_feed(url, feed_data):
+    feed = Feed(url=url, data=feed_data.feed)
     feed.save()
     update_feed(feed_data)
 

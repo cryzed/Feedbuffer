@@ -17,7 +17,7 @@ scheduler = sched.scheduler()
 
 def add_feed(url):
     feed_data = feedparser.parse(url)
-    database.add_feed(feed_data)
+    database.add_feed(url, feed_data)
 
 
 def update_feed(url):
