@@ -50,7 +50,7 @@ def schedule_feed_update(url):
 
 def generate_feed(feed_data, entries):
     author_detail = feed_data.get('author_detail', {})
-    feed_generator = feedgenerator.Atom1Feed(
+    feed_generator = feedgenerator.DefaultFeed(
         feed_data.get('title', ''),
         feed_data.get('link', ''),
         feed_data.get('description', ''),
