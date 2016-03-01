@@ -17,6 +17,11 @@ session = cachecontrol.CacheControl(requests.Session())
 session.headers['User-Agent'] = constants.USER_AGENT
 
 
+# XML-processing instructions have to end with "?>". The original code ends them with ">" which leads to errors in
+# almost all parsers -- so we fix this at runtime.
+bs4.element.ProcessingInstruction.SUFFIX = '?>'
+
+
 def get_feed_entries(soup):
     return [item for item in soup(['item', 'entry'])]
 
@@ -70,17 +75,8 @@ def delete_feed_entries(soup):
         entry.decompose()
 
 
-def fix_up_feed_soup(soup):
-    # Remove useless instructions that cause errors with most parsers
-    for content in soup.children:
-        if isinstance(content, bs4.element.ProcessingInstruction):
-            # Decompose method doesn't exist for ProcessingInstruction
-            content.extract()
-
-
 def generate_feed(feed_data, entries, encoding):
     feed = bs4.BeautifulSoup(feed_data, 'xml', from_encoding=encoding or None)
-    fix_up_feed_soup(feed)
     delete_feed_entries(feed)
     root = feed.find(['rss', 'feed'])
     for entry in entries:
