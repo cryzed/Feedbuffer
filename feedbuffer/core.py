@@ -32,9 +32,9 @@ def update_feed(url):
     except requests.exceptions.Timeout:
         return
 
-    # Don't let requests do the content decoding, instead just hint at the detect encoding and let BeautifulSoup and the
-    # treebuilder do its thing. For example, lxml only correctly parses content with <content:encoded> tags when it can
-    # decode the bytes itself.
+    # Don't let requests do the content decoding, instead just hint at the detected encoding and let BeautifulSoup and
+    # the treebuilder do its thing. For example: lxml only correctly parses content with <content:encoded> tags when it
+    # can decode the bytes by itself.
     try:
         encoding = response.encoding
         soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=encoding)
