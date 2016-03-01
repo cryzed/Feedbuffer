@@ -1,28 +1,38 @@
-from datetime import datetime
 import concurrent.futures
 import sched
 
-from django.utils import feedgenerator
+import bs4
+import cachecontrol
 import feedparser
+import requests
+import requests.exceptions
 
 from feedbuffer import constants, database, log
-
-ENCODING = 'UTF-8'
 
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=constants.MAXIMUM_UPDATE_WORKERS)
 logger = log.get_logger(__name__)
 scheduled = {}
 scheduler = sched.scheduler()
+session = cachecontrol.CacheControl(requests.Session())
+session.headers['User-Agent'] = constants.USER_AGENT
 
 
-def add_feed(url):
-    feed_data = feedparser.parse(url)
-    database.add_feed(url, feed_data)
+def get_feed_entries(soup):
+    return [item for item in soup(['item', 'entry'])]
 
 
 def update_feed(url):
-    feed_data = feedparser.parse(url)
-    database.update_feed(url, feed_data)
+    try:
+        response = session.get(url, timeout=constants.REQUEST_TIMEOUT)
+    except requests.exceptions.Timeout:
+        return
+
+    soup = bs4.BeautifulSoup(response.text, 'xml')
+    entries = get_feed_entries(soup)
+    feed = feedparser.parse(response.text)
+
+    entry_ids = [entry.id for entry in feed.entries]
+    database.update_feed(url, response.text, zip(entry_ids, (str(entry) for entry in entries)))
 
 
 def update_and_reschedule_feed(url):
@@ -33,7 +43,6 @@ def update_and_reschedule_feed(url):
 def schedule_feed_update(url):
     if url in scheduled:
         if scheduled[url] in scheduler.queue:
-            logger.debug('URL was already scheduled, cancelling: %s', url)
             try:
                 scheduler.cancel(scheduled[url])
             except ValueError:
@@ -48,42 +57,18 @@ def schedule_feed_update(url):
     scheduled[url] = event
 
 
+def delete_feed_entries(soup):
+    for entry in get_feed_entries(soup):
+        entry.decompose()
+
+
 def generate_feed(feed_data, entries):
-    author_detail = feed_data.get('author_detail', {})
-    feed_generator = feedgenerator.DefaultFeed(
-        feed_data.get('title', ''),
-        feed_data.get('link', ''),
-        feed_data.get('description', ''),
-        feed_data.get('language', None),
-        author_detail.get('email', None),
-        author_detail.get('name', None),
-        author_detail.get('href', None),
-        feed_data.get('subtitle', None),
-        [tag.term for tag in feed_data.get('tags', [])] or None,
-        feed_data.get('href', None),
-        feed_data.get('rights', None),
-        feed_data.get('id_', None),
-        feed_data.get('ttl', None),
-    )
-
+    feed = bs4.BeautifulSoup(feed_data, 'xml')
+    delete_feed_entries(feed)
+    root = feed.find(['rss', 'feed'])
     for entry in entries:
-        author_detail = entry.get('author_detail', {})
-        feed_generator.add_item(
-            entry.get('title', ''),
-            entry.get('link', ''),
-            entry.get('description', ''),
-            author_detail.get('email', None),
-            author_detail.get('name', None),
-            author_detail.get('href', None),
-            datetime(*entry.published_parsed[:6]) if getattr(entry, 'published_parsed', None) is not None else None,
-            entry.get('comments', None),
-            entry.get('id_', None),
-            None,
-            None,
-            [tag.term for tag in entry.get('tags', [])] or None,
-            entry.get('rights', None),
-            entry.get('ttl', None),
-            datetime(*entry.updated_parsed[:6]) if getattr(entry, 'updated_parsed', None) is not None else None
-        )
+        entry = bs4.BeautifulSoup(entry, 'xml')
+        entry = entry.find(['item', 'entry'])
+        root.insert(0, entry)
 
-    return feed_generator.writeString(ENCODING)
+    return str(feed).encode(constants.ENCODING)

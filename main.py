@@ -14,11 +14,7 @@ def main():
     cherrypy.config.update({'server.socket_port': PORT, 'server.socket_host': '0.0.0.0'})
     cherrypy.config['server.socket_port'] = PORT
     cherrypy.config['checker.check_skipped_app_config'] = False
-
-    logger.info('Starting CherryPy server...')
     threading.Thread(target=lambda: cherrypy.quickstart(Server())).start()
-
-    logger.info('Starting scheduler loop...')
     while True:
         core.scheduler.run()
         time.sleep(1)
