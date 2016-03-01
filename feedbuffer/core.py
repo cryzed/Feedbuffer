@@ -17,8 +17,8 @@ session = cachecontrol.CacheControl(requests.Session())
 session.headers['User-Agent'] = constants.USER_AGENT
 
 
-# XML-processing instructions have to end with "?>". The original code ends them with ">" which leads to errors in
-# almost all parsers -- so we fix this at runtime.
+# XML-processing instructions have to end with "?>". The original code erroneously ends them with ">" which leads to
+# errors in almost all parsers, including BeautifulSoup with the lxml treebuilder itself -- so we fix this at runtime.
 bs4.element.ProcessingInstruction.SUFFIX = '?>'
 
 
@@ -32,20 +32,18 @@ def update_feed(url):
     except requests.exceptions.Timeout:
         return
 
-    # Don't let requests do the content decoding, instead just hint at the detected encoding and let BeautifulSoup and
-    # the treebuilder do its thing. For example: lxml only correctly parses content with <content:encoded> tags when it
-    # can decode the bytes by itself.
+    # Don't let requests do the content decoding, instead just supply the encoding detected by requests and let
+    # BeautifulSoup and the treebuilder do their thing. For example: BeautifulSoup4 with the lxml treebuilder only
+    # correctly parses content with <content:encoded> tags when it can decode the bytes by itself.
     try:
-        encoding = response.encoding
-        soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=encoding)
+        soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=response.encoding)
     except UnicodeDecodeError:
-        encoding = response.apparent_encoding
-        soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=encoding)
+        soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=response.apparent_encoding)
 
     entries = get_feed_entries(soup)
     feed = feedparser.parse(response.text)
     entry_ids = [entry.id for entry in feed.entries]
-    database.update_feed(url, response.content, zip(entry_ids, (str(entry) for entry in entries)), encoding or '')
+    database.update_feed(url, str(soup), zip(entry_ids, (str(entry) for entry in entries)))
 
 
 def update_and_reschedule_feed(url):
@@ -75,8 +73,8 @@ def delete_feed_entries(soup):
         entry.decompose()
 
 
-def generate_feed(feed_data, entries, encoding):
-    feed = bs4.BeautifulSoup(feed_data, 'xml', from_encoding=encoding or None)
+def generate_feed(feed_data, entries):
+    feed = bs4.BeautifulSoup(feed_data, 'xml')
     delete_feed_entries(feed)
     root = feed.find(['rss', 'feed'])
     for entry in entries:

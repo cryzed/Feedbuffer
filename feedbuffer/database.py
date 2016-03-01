@@ -14,12 +14,7 @@ class Model(peewee.Model):
 class Feed(Model):
     url = peewee.TextField(unique=True)
     update_interval = peewee.IntegerField(default=constants.DEFAULT_UPDATE_INTERVAL)
-
-    # Storing an already decoded version of the feed would be possible, but that would mean converting the BeautifulSoup
-    # into an unicode string which seems to change the feed contents in subtle ways quite often -- preventing it from
-    # being parsed back into a valid BeautifulSoup instance.
-    data = peewee.BlobField()
-    encoding = peewee.TextField()
+    data = peewee.TextField()
 
 
 class FeedItem(Model):
@@ -47,11 +42,11 @@ def get_feed(url):
     return _get_feed_query(url).get()
 
 
-def update_feed(url, feed_data, entries, encoding):
+def update_feed(url, feed_data, entries):
     if feed_exists(url):
         feed = get_feed(url)
     else:
-        feed = Feed(url=url, data=feed_data, encoding=encoding)
+        feed = Feed(url=url, data=feed_data)
         feed.save()
 
     data_source = tuple(

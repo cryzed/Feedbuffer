@@ -12,7 +12,7 @@ _logger = logging.getLogger(__package__)
 _logger.setLevel(logging.DEBUG)
 formatter = logging.Formatter('[%(asctime)s][%(levelname)s] %(name)s: %(message)s')
 
-#handlers = logging.StreamHandler(), logging.FileHandler(filename=LOG_PATH)
+# TODO: Use a configuration file instead
 handlers = logging.FileHandler(filename=LOG_PATH),
 for handler in handlers:
     handler.setFormatter(formatter)
