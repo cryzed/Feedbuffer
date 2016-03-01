@@ -78,6 +78,6 @@ def generate_feed(feed_data, entries):
     for entry in entries:
         entry = bs4.BeautifulSoup(entry, 'xml')
         entry = entry.find(['item', 'entry'])
-        root.insert(0, entry)
+        root.insert(len(root.contents), entry)
 
     return str(feed).encode(constants.ENCODING)
