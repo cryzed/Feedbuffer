@@ -1,6 +1,5 @@
 import concurrent.futures
 import sched
-from _operator import concat
 
 import bs4
 import cachecontrol
