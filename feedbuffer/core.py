@@ -1,5 +1,6 @@
 import concurrent.futures
 import sched
+from _operator import concat
 
 import bs4
 import cachecontrol
@@ -30,7 +31,6 @@ def update_feed(url):
     soup = bs4.BeautifulSoup(response.text, 'xml')
     entries = get_feed_entries(soup)
     feed = feedparser.parse(response.text)
-
     entry_ids = [entry.id for entry in feed.entries]
     database.update_feed(url, response.text, zip(entry_ids, (str(entry) for entry in entries)))
 
@@ -62,8 +62,17 @@ def delete_feed_entries(soup):
         entry.decompose()
 
 
+def fix_up_feed_soup(soup):
+    # Remove useless instructions that cause errors with most parsers
+    for content in soup.children:
+        if isinstance(content, bs4.element.ProcessingInstruction):
+            # Decompose method doesn't exist for ProcessingInstruction
+            content.extract()
+
+
 def generate_feed(feed_data, entries):
     feed = bs4.BeautifulSoup(feed_data, 'xml')
+    fix_up_feed_soup(feed)
     delete_feed_entries(feed)
     root = feed.find(['rss', 'feed'])
     for entry in entries:
