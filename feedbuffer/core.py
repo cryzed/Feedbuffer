@@ -41,15 +41,15 @@ def update_feed(url):
         soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=response.apparent_encoding)
 
     entries = extract_feed_entries(soup)
-    pared_feed = feedparser.parse(response.text)
+    parsed_feed = feedparser.parse(response.text)
 
     entry_ids = []
-    for index, parsed_entry in enumerate(pared_feed.entries):
+    for index, parsed_entry in enumerate(parsed_feed.entries):
         id_ = parsed_entry.get('id', None)
         if not id_:
             id_ = hashlib.sha1(entries[index].encode(constants.ENCODING)).hexdigest()
             logger.warn('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
-            id_tag = soup.new_tag('guid' if pared_feed.version.startswith('rss') else 'id')
+            id_tag = soup.new_tag('guid' if parsed_feed.version.startswith('rss') else 'id')
             id_tag.string = id_
             entries[index].append(id_tag)
         entry_ids.append(id_)
