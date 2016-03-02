@@ -16,14 +16,13 @@ scheduler = sched.scheduler()
 session = cachecontrol.CacheControl(requests.Session())
 session.headers['User-Agent'] = constants.USER_AGENT
 
-
 # XML-processing instructions have to end with "?>". The original code erroneously ends them with ">" which leads to
 # errors in almost all parsers, including BeautifulSoup with the lxml treebuilder itself -- so we fix this at runtime.
 bs4.element.ProcessingInstruction.SUFFIX = '?>'
 
 
-def get_feed_entries(soup):
-    return [item for item in soup(['item', 'entry'])]
+def extract_feed_entries(soup):
+    return [item.extract() for item in soup(['item', 'entry'])]
 
 
 def update_feed(url):
@@ -40,7 +39,7 @@ def update_feed(url):
     except UnicodeDecodeError:
         soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=response.apparent_encoding)
 
-    entries = get_feed_entries(soup)
+    entries = extract_feed_entries(soup)
     feed = feedparser.parse(response.text)
     entry_ids = [entry.id for entry in feed.entries]
     database.update_feed(url, str(soup), zip(entry_ids, (str(entry) for entry in entries)))
@@ -68,14 +67,8 @@ def schedule_feed_update(url):
     scheduled[url] = event
 
 
-def delete_feed_entries(soup):
-    for entry in get_feed_entries(soup):
-        entry.decompose()
-
-
 def generate_feed(feed_data, entries):
     feed = bs4.BeautifulSoup(feed_data, 'xml')
-    delete_feed_entries(feed)
     root = feed.find(['rss', 'feed'])
     for entry in entries:
         entry = bs4.BeautifulSoup(entry, 'xml')

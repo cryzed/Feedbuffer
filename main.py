@@ -1,5 +1,6 @@
 import threading
 import time
+import traceback
 
 import cherrypy
 
@@ -16,7 +17,10 @@ def main():
     cherrypy.config['checker.check_skipped_app_config'] = False
     threading.Thread(target=lambda: cherrypy.quickstart(Server())).start()
     while True:
-        core.scheduler.run()
+        try:
+            core.scheduler.run()
+        except Exception:
+            logger.error(traceback.format_exc())
         time.sleep(1)
 
 
