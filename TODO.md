@@ -1,0 +1,1 @@
+- Execute database write operations in a single thread to prevent "database is locked" errors
