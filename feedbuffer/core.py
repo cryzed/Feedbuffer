@@ -10,12 +10,12 @@ import requests.exceptions
 
 from feedbuffer import constants, database, log
 
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=constants.MAXIMUM_UPDATE_WORKERS)
-logger = log.get_logger(__name__)
+_executor = concurrent.futures.ThreadPoolExecutor(max_workers=constants.MAXIMUM_UPDATE_WORKERS)
+_logger = log.get_logger(__name__)
+_session = cachecontrol.CacheControl(requests.Session())
+_session.headers['User-Agent'] = constants.USER_AGENT
 scheduled = {}
 scheduler = sched.scheduler()
-session = cachecontrol.CacheControl(requests.Session())
-session.headers['User-Agent'] = constants.USER_AGENT
 
 # XML-processing instructions have to end with "?>". The original code erroneously ends them with ">" which leads to
 # errors in almost all parsers, including BeautifulSoup with the lxml treebuilder itself -- so we fix this at runtime.
@@ -28,7 +28,7 @@ def extract_feed_entries(soup):
 
 def update_feed(url):
     try:
-        response = session.get(url, timeout=constants.REQUEST_TIMEOUT)
+        response = _session.get(url, timeout=constants.REQUEST_TIMEOUT)
     except requests.exceptions.Timeout:
         return
 
@@ -41,6 +41,8 @@ def update_feed(url):
         soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=response.apparent_encoding)
 
     entries = extract_feed_entries(soup)
+
+    # TODO: Remove the feedparser dependency and figure out all ways to get access to the feed item id
     parsed_feed = feedparser.parse(response.text)
 
     entry_ids = []
@@ -48,7 +50,7 @@ def update_feed(url):
         id_ = parsed_entry.get('id', None)
         if id_ is None:
             id_ = hashlib.sha1(entries[index].encode(constants.ENCODING)).hexdigest()
-            logger.warn('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
+            _logger.warn('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
             id_tag = soup.new_tag('guid' if parsed_feed.version.startswith('rss') else 'id')
             id_tag.string = id_
             entries[index].append(id_tag)
@@ -58,7 +60,7 @@ def update_feed(url):
 
 
 def update_and_reschedule_feed(url):
-    executor.submit(update_feed, url)
+    _executor.submit(update_feed, url)
     schedule_feed_update(url)
 
 

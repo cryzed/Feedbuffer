@@ -1,1 +1,1 @@
-- Execute database write operations in a single thread to prevent "database is locked" errors
+- Possibly save fetched feed item ids to reduce outgoing traffic by not sending the same feed item twice

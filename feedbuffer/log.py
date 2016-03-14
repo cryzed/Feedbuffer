@@ -10,12 +10,12 @@ cherrypy.log.access_log.propagate = False
 
 _logger = logging.getLogger(__package__)
 _logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter('[%(asctime)s][%(levelname)s] %(name)s: %(message)s')
+_formatter = logging.Formatter('[%(asctime)s][%(levelname)s] %(name)s: %(message)s')
 
 # TODO: Use a configuration file instead
-handlers = logging.FileHandler(filename=LOG_PATH),
-for handler in handlers:
-    handler.setFormatter(formatter)
+_handlers = logging.FileHandler(filename=LOG_PATH),
+for handler in _handlers:
+    handler.setFormatter(_formatter)
     _logger.addHandler(handler)
 
 

@@ -1,14 +1,22 @@
+import concurrent.futures
+import functools
+import threading
+
 import peewee
 
 from feedbuffer import constants, log
 
-database = peewee.SqliteDatabase(constants.DATABASE_PATH)
-logger = log.get_logger(__name__)
+_database = peewee.SqliteDatabase(constants.DATABASE_PATH)
+_logger = log.get_logger(__name__)
+
+# Easy way to queue function calls and execute them in a single thread, without having to manually write
+# producer-consumer logic.
+_write_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 
 class Model(peewee.Model):
     class Meta:
-        database = database
+        database = peewee.SqliteDatabase(constants.DATABASE_PATH)
 
 
 class Feed(Model):
@@ -23,7 +31,19 @@ class FeedItem(Model):
     feed = peewee.ForeignKeyField(Feed, related_name='entries')
 
 
-database.create_tables([Feed, FeedItem], safe=True)
+_database.create_tables([Feed, FeedItem], safe=True)
+
+
+def _execute_in(executor):
+    def decorator(function):
+        @functools.wraps(function)
+        def wrapper(*args, **kwargs):
+            future = executor.submit(function, *args, **kwargs)
+            return future.result
+
+        return wrapper
+
+    return decorator
 
 
 def _get_feed_query(url):
@@ -42,6 +62,7 @@ def get_feed(url):
     return _get_feed_query(url).get()
 
 
+@_execute_in(_write_executor)
 def update_feed(url, feed_data, entries):
     if feed_exists(url):
         feed = get_feed(url)
@@ -54,14 +75,15 @@ def update_feed(url, feed_data, entries):
         if not _feed_item_exists(feed, id_)
     )
 
-    logger.info('Updating feed: %s with %d new entries...', url, len(data_source))
+    _logger.info('Updating feed: %s with %d new entries...', url, len(data_source))
 
-    with database.atomic():
+    with _database.atomic():
         FeedItem.insert_many(data_source).execute()
         feed.data = feed_data
         feed.save()
 
 
+@_execute_in(_write_executor)
 def flush_feed(feed):
     query = FeedItem.delete().where(FeedItem.feed == feed)
     query.execute()
