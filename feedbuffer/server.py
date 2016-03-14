@@ -11,12 +11,12 @@ class Server:
     def index(self, url, update_interval=DEFAULT_UPDATE_INTERVAL):
         if not database.feed_exists(url):
             _logger.info('Adding feed: %s', url)
-            core._executor.submit(core.update_feed, url)
+            core.executor.submit(core.update_feed, url)
             core.schedule_feed_update(url)
             return
         elif url not in core.scheduled:
             _logger.info('Updating feed: %s', url)
-            core._executor.submit(core.update_feed, url)
+            core.executor.submit(core.update_feed, url)
             core.schedule_feed_update(url)
 
         feed = database.get_feed(url)
@@ -24,8 +24,7 @@ class Server:
         if feed.update_interval != update_interval:
             _logger.info('Changing update interval from %d to %d seconds for feed: %s',
                          feed.update_interval, update_interval, url)
-            feed.update_interval = update_interval
-            feed.save()
+            database.update_model_data(feed, update_interval=update_interval)
             core.schedule_feed_update(url)
 
         _logger.info('Generating feed: %s with %d entries...', url, len(feed.entries))

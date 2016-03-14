@@ -10,10 +10,10 @@ import requests.exceptions
 
 from feedbuffer import constants, database, log
 
-_executor = concurrent.futures.ThreadPoolExecutor(max_workers=constants.MAXIMUM_UPDATE_WORKERS)
 _logger = log.get_logger(__name__)
 _session = cachecontrol.CacheControl(requests.Session())
 _session.headers['User-Agent'] = constants.USER_AGENT
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=constants.MAXIMUM_UPDATE_WORKERS)
 scheduled = {}
 scheduler = sched.scheduler()
 
@@ -60,7 +60,7 @@ def update_feed(url):
 
 
 def update_and_reschedule_feed(url):
-    _executor.submit(update_feed, url)
+    executor.submit(update_feed, url)
     schedule_feed_update(url)
 
 

@@ -86,3 +86,12 @@ def update_feed(url, feed_data, entries):
 def flush_feed(feed):
     query = FeedItem.delete().where(FeedItem.feed == feed)
     query.execute()
+
+
+# Generic way to update data in a model instance using the write executor
+@_execute_in(_write_executor)
+def update_model_data(model, **kwargs):
+    for key, value in kwargs.items():
+        setattr(model, key, value)
+
+    model.save()
