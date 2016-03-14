@@ -1,6 +1,5 @@
 import concurrent.futures
 import functools
-import threading
 
 import peewee
 
@@ -16,7 +15,7 @@ _write_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 class Model(peewee.Model):
     class Meta:
-        database = peewee.SqliteDatabase(constants.DATABASE_PATH)
+        database = _database
 
 
 class Feed(Model):
