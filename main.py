@@ -5,7 +5,7 @@ import traceback
 import cherrypy
 
 from feedbuffer import core, log
-from feedbuffer.constants import PORT
+from feedbuffer.settings import PORT
 from feedbuffer.server import Server
 
 logger = log.get_logger(__name__)

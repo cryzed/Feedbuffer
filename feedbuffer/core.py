@@ -8,12 +8,12 @@ import feedparser
 import requests
 import requests.exceptions
 
-from feedbuffer import constants, database, log
+from feedbuffer import settings, database, log
 
 _logger = log.get_logger(__name__)
 _session = cachecontrol.CacheControl(requests.Session())
-_session.headers['User-Agent'] = constants.USER_AGENT
-executor = concurrent.futures.ThreadPoolExecutor(max_workers=constants.MAXIMUM_UPDATE_WORKERS)
+_session.headers['User-Agent'] = settings.USER_AGENT
+executor = concurrent.futures.ThreadPoolExecutor(max_workers=settings.MAXIMUM_UPDATE_WORKERS)
 scheduled = {}
 scheduler = sched.scheduler()
 
@@ -28,7 +28,7 @@ def extract_feed_entries(soup):
 
 def update_feed(url):
     try:
-        response = _session.get(url, timeout=constants.REQUEST_TIMEOUT)
+        response = _session.get(url, timeout=settings.REQUEST_TIMEOUT)
     except requests.exceptions.Timeout:
         return
 
@@ -49,8 +49,8 @@ def update_feed(url):
     for index, parsed_entry in enumerate(parsed_feed.entries):
         id_ = parsed_entry.get('id', None)
         if id_ is None:
-            id_ = hashlib.sha1(entries[index].encode(constants.ENCODING)).hexdigest()
-            _logger.warn('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
+            id_ = hashlib.sha1(entries[index].encode(settings.ENCODING)).hexdigest()
+            _logger.info('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
             id_tag = soup.new_tag('guid' if parsed_feed.version.startswith('rss') else 'id')
             id_tag.string = id_
             entries[index].append(id_tag)
@@ -89,4 +89,4 @@ def generate_feed(feed_data, entries):
         entry = entry.find(['item', 'entry'])
         root.insert(len(root.contents), entry)
 
-    return str(feed).encode(constants.ENCODING)
+    return str(feed).encode(settings.ENCODING)

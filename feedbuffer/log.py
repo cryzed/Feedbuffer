@@ -1,20 +1,19 @@
-import cherrypy
-
 import logging
 
-from feedbuffer.constants import LOG_PATH
+import cherrypy
+
+from feedbuffer import settings
 
 cherrypy.log.screen = False
 cherrypy.log.error_log.propagate = False
 cherrypy.log.access_log.propagate = False
 
 _logger = logging.getLogger(__package__)
-_logger.setLevel(logging.DEBUG)
+_logger.setLevel(settings.LOGGING_LEVEL)
 _formatter = logging.Formatter('[%(asctime)s][%(levelname)s] %(name)s: %(message)s')
 
 # TODO: Use a configuration file instead
-_handlers = logging.FileHandler(filename=LOG_PATH),
-for handler in _handlers:
+for handler in settings.LOGGING_HANDLERS:
     handler.setFormatter(_formatter)
     _logger.addHandler(handler)
 

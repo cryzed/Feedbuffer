@@ -3,9 +3,9 @@ import functools
 
 import peewee
 
-from feedbuffer import constants, log
+from feedbuffer import settings, log
 
-_database = peewee.SqliteDatabase(constants.DATABASE_PATH)
+_database = peewee.SqliteDatabase(settings.DATABASE_PATH)
 _logger = log.get_logger(__name__)
 
 # Easy way to queue function calls and execute them in a single thread, without having to manually write
@@ -20,7 +20,7 @@ class Model(peewee.Model):
 
 class Feed(Model):
     url = peewee.TextField(unique=True)
-    update_interval = peewee.IntegerField(default=constants.DEFAULT_UPDATE_INTERVAL)
+    update_interval = peewee.IntegerField(default=settings.DEFAULT_UPDATE_INTERVAL)
     data = peewee.TextField()
 
 
@@ -69,10 +69,10 @@ def update_feed(url, feed_data, entries):
         feed = Feed(url=url, data=feed_data)
         feed.save()
 
-    data_source = tuple(
+    data_source = [
         {'id_': id_, 'data': entry, 'feed': feed} for (id_, entry) in entries
         if not _feed_item_exists(feed, id_)
-    )
+    ]
 
     _logger.info('Updating feed: %s with %d new entries...', url, len(data_source))
 

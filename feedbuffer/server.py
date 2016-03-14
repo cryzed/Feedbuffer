@@ -1,7 +1,7 @@
 import cherrypy
 
 from feedbuffer import core, database, log
-from feedbuffer.constants import DEFAULT_UPDATE_INTERVAL
+from feedbuffer.settings import DEFAULT_UPDATE_INTERVAL
 
 _logger = log.get_logger(__name__)
 
