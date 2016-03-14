@@ -1,1 +1,2 @@
 - Possibly save fetched feed item ids to reduce outgoing traffic by not sending the same feed item twice
+- Remove the feedparser dependency and figure out all ways to get access to the feed item id
