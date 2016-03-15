@@ -8,7 +8,7 @@ from feedbuffer import core, log
 from feedbuffer.settings import PORT
 from feedbuffer.server import Server
 
-logger = log.get_logger(__name__)
+_logger = log.get_logger(__name__)
 
 
 def main():
@@ -22,7 +22,7 @@ def main():
         try:
             core.scheduler.run()
         except Exception:
-            logger.error(traceback.format_exc())
+            _logger.error(traceback.format_exc())
         time.sleep(1)
 
 
