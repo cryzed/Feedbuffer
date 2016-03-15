@@ -12,7 +12,6 @@ _logger = logging.getLogger(__package__)
 _logger.setLevel(settings.LOGGING_LEVEL)
 _formatter = logging.Formatter('[%(asctime)s][%(levelname)s] %(name)s: %(message)s')
 
-# TODO: Use a configuration file instead
 for handler in settings.LOGGING_HANDLERS:
     handler.setFormatter(_formatter)
     _logger.addHandler(handler)

@@ -70,8 +70,7 @@ def update_feed(url, feed_data, entries):
         feed.save()
 
     data_source = [
-        {'id_': id_, 'data': entry, 'feed': feed} for (id_, entry) in entries
-        if not _feed_item_exists(feed, id_)
+        {'id_': id_, 'data': entry, 'feed': feed} for (id_, entry) in entries if not _feed_item_exists(feed, id_)
     ]
 
     _logger.info('Updating feed: %s with %d new entries...', url, len(data_source))
