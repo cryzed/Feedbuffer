@@ -38,7 +38,7 @@ def _execute_in(executor):
         @functools.wraps(function)
         def wrapper(*args, **kwargs):
             future = executor.submit(function, *args, **kwargs)
-            return future.result
+            return future.result()
 
         return wrapper
 
