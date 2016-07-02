@@ -11,15 +11,13 @@ class Server:
     def index(self, url, update_interval=DEFAULT_UPDATE_INTERVAL):
         if not database.feed_exists(url):
             _logger.info('Adding feed: %s', url)
-
             try:
-                response = core.update_feed(url)
+                core.update_feed(url)
             except Exception:
                 _logger.exception('Exception occurred during initial feed update: %s', url)
                 return None
 
             core.schedule_feed_update(url)
-            return response.encode(settings.ENCODING)
         elif url not in core.scheduled:
             _logger.info('Updating feed: %s', url)
             core.executor.submit(core.update_feed, url)
@@ -36,4 +34,5 @@ class Server:
         _logger.info('Generating feed: %s with %d entries...', url, len(feed.entries))
         response = core.generate_feed(feed.data, [entry.data for entry in feed.entries])
         database.flush_feed(feed)
+        cherrypy.response.headers['Content-Type'] = ''
         return response

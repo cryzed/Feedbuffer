@@ -30,7 +30,7 @@ def update_feed(url):
     try:
         response = _session.get(url, timeout=settings.REQUEST_TIMEOUT)
     except requests.exceptions.Timeout:
-        return ''
+        return
 
     # Don't let requests do the content decoding, instead just supply the encoding detected by requests and let
     # BeautifulSoup and the treebuilder do their thing. For example: BeautifulSoup4 with the lxml treebuilder only
@@ -41,9 +41,9 @@ def update_feed(url):
         soup = bs4.BeautifulSoup(response.content, 'xml', from_encoding=response.apparent_encoding)
 
     entries = extract_feed_entries(soup)
-
     # TODO: Remove the feedparser dependency and figure out all ways to get access to the feed item id
     parsed_feed = feedparser.parse(response.text)
+    is_rss = parsed_feed.version.startswith('rss')
 
     entry_ids = []
     for index, parsed_entry in enumerate(parsed_feed.entries):
@@ -53,13 +53,18 @@ def update_feed(url):
         if not id_:
             id_ = hashlib.sha1(entries[index].encode(settings.ENCODING)).hexdigest()
             _logger.info('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
-            id_tag = soup.new_tag('guid' if parsed_feed.version.startswith('rss') else 'id')
+            id_tag = soup.new_tag('guid' if is_rss else 'id')
             id_tag.string = id_
             entries[index].append(id_tag)
         entry_ids.append(id_)
 
+    # Fix missing RSS channel element
+    if is_rss and not soup.find('channel'):
+        _logger.info('No RSS channel element found for %s. Inserting channel element...', url)
+        rss = soup.find('rss')
+        rss.append(rss.new_tag('channel'))
+
     database.update_feed(url, str(soup), zip(entry_ids, (str(entry) for entry in entries)))
-    return response.text
 
 
 def update_and_reschedule_feed(url):
@@ -86,7 +91,9 @@ def schedule_feed_update(url):
 
 def generate_feed(feed_data, entries):
     feed = bs4.BeautifulSoup(feed_data, 'xml')
-    root = feed.find(['rss', 'feed'])
+
+    # Find RSS channel element directly
+    root = feed.find(['channel', 'feed'])
     for entry in entries:
         entry = bs4.BeautifulSoup(entry, 'xml')
         entry = entry.find(['item', 'entry'])
