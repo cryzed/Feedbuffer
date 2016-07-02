@@ -1,6 +1,6 @@
 import cherrypy
 
-from feedbuffer import core, database, log
+from feedbuffer import core, database, log, settings
 from feedbuffer.settings import DEFAULT_UPDATE_INTERVAL
 
 _logger = log.get_logger(__name__)
@@ -11,9 +11,15 @@ class Server:
     def index(self, url, update_interval=DEFAULT_UPDATE_INTERVAL):
         if not database.feed_exists(url):
             _logger.info('Adding feed: %s', url)
-            core.executor.submit(core.update_feed, url)
+
+            try:
+                response = core.update_feed(url)
+            except Exception:
+                _logger.exception('Exception occurred during initial feed update: %s', url)
+                return None
+
             core.schedule_feed_update(url)
-            return
+            return response.encode(settings.ENCODING)
         elif url not in core.scheduled:
             _logger.info('Updating feed: %s', url)
             core.executor.submit(core.update_feed, url)

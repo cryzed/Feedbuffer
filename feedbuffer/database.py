@@ -10,7 +10,7 @@ _logger = log.get_logger(__name__)
 
 # Easy way to queue function calls and execute them in a single thread, without having to manually write
 # producer-consumer logic.
-_write_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+_database_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 
 class Model(peewee.Model):
@@ -53,18 +53,28 @@ def _feed_item_exists(feed, id_):
     return FeedItem.select().where(FeedItem.feed == feed and FeedItem.id_ == id_).exists()
 
 
+def _feed_exists(url):
+    return _get_feed_query(url).exists()
+
+
+def _get_feed(url):
+    return _get_feed_query(url).get()
+
+
+@_execute_in(_database_executor)
 def feed_exists(url):
     return _get_feed_query(url).exists()
 
 
+@_execute_in(_database_executor)
 def get_feed(url):
-    return _get_feed_query(url).get()
+    return _get_feed(url)
 
 
-@_execute_in(_write_executor)
+@_execute_in(_database_executor)
 def update_feed(url, feed_data, entries):
-    if feed_exists(url):
-        feed = get_feed(url)
+    if _feed_exists(url):
+        feed = _get_feed(url)
     else:
         feed = Feed(url=url, data=feed_data)
         feed.save()
@@ -81,14 +91,14 @@ def update_feed(url, feed_data, entries):
         feed.save()
 
 
-@_execute_in(_write_executor)
+@_execute_in(_database_executor)
 def flush_feed(feed):
     query = FeedItem.delete().where(FeedItem.feed == feed)
     query.execute()
 
 
 # Generic way to update data in a model instance using the write executor
-@_execute_in(_write_executor)
+@_execute_in(_database_executor)
 def update_model_data(model, **kwargs):
     for key, value in kwargs.items():
         setattr(model, key, value)

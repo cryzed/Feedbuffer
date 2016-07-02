@@ -30,7 +30,7 @@ def update_feed(url):
     try:
         response = _session.get(url, timeout=settings.REQUEST_TIMEOUT)
     except requests.exceptions.Timeout:
-        return
+        return ''
 
     # Don't let requests do the content decoding, instead just supply the encoding detected by requests and let
     # BeautifulSoup and the treebuilder do their thing. For example: BeautifulSoup4 with the lxml treebuilder only
@@ -57,6 +57,7 @@ def update_feed(url):
         entry_ids.append(id_)
 
     database.update_feed(url, str(soup), zip(entry_ids, (str(entry) for entry in entries)))
+    return response.text
 
 
 def update_and_reschedule_feed(url):
