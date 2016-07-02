@@ -48,7 +48,9 @@ def update_feed(url):
     entry_ids = []
     for index, parsed_entry in enumerate(parsed_feed.entries):
         id_ = parsed_entry.get('id', None)
-        if id_ is None:
+
+        # id might be non-existent or simply empty, make sure to handle both cases correctly
+        if not id_:
             id_ = hashlib.sha1(entries[index].encode(settings.ENCODING)).hexdigest()
             _logger.info('No identifier found for entry %d of %s. Inserting SHA-1 id: %s...', index, url, id_)
             id_tag = soup.new_tag('guid' if parsed_feed.version.startswith('rss') else 'id')
